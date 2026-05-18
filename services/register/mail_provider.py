@@ -239,6 +239,9 @@ class BaseMailProvider:
 
         return self.wait_for(mailbox, extract_unseen_code)
 
+    def delete_mailbox(self, mailbox: dict[str, Any]) -> bool:
+        return False
+
     def close(self) -> None:
         pass
 
@@ -607,6 +610,13 @@ class MoEmailProvider(BaseMailProvider):
             sender = sender.get("address") or sender.get("email") or sender.get("name") or ""
         return {"provider": self.name, "mailbox": mailbox["address"], "message_id": message_id, "subject": str(message.get("subject") or item.get("subject") or ""), "sender": str(sender), "text_content": text_content, "html_content": html_content, "received_at": _parse_received_at(message.get("createdAt") or message.get("created_at") or message.get("receivedAt") or message.get("date") or message.get("timestamp") or item.get("createdAt") or item.get("created_at") or item.get("receivedAt") or item.get("date") or item.get("timestamp")), "raw": detail}
 
+    def delete_mailbox(self, mailbox: dict[str, Any]) -> bool:
+        email_id = str(mailbox.get("email_id") or "").strip()
+        if not email_id:
+            raise RuntimeError("MoEmail 缺少 email_id")
+        data = self._request("DELETE", f"/api/emails/{email_id}")
+        return bool(data.get("success", True))
+
     def close(self) -> None:
         self.session.close()
 
@@ -847,5 +857,13 @@ def wait_for_code(mail_config: dict, mailbox: dict) -> str | None:
     provider = _create_provider(mail_config, str(mailbox.get("provider") or ""), str(mailbox.get("provider_ref") or ""))
     try:
         return provider.wait_for_code(mailbox)
+    finally:
+        provider.close()
+
+
+def delete_mailbox(mail_config: dict, mailbox: dict) -> bool:
+    provider = _create_provider(mail_config, str(mailbox.get("provider") or ""), str(mailbox.get("provider_ref") or ""))
+    try:
+        return provider.delete_mailbox(mailbox)
     finally:
         provider.close()
