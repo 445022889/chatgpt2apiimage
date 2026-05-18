@@ -210,6 +210,22 @@ def wait_for_code(mailbox: dict) -> str | None:
     return mail_provider.wait_for_code(config["mail"], mailbox)
 
 
+def delete_mailbox(mailbox: dict) -> bool:
+    return mail_provider.delete_mailbox(config["mail"], mailbox)
+
+
+def delete_moemail_mailbox(mailbox: dict, index: int) -> None:
+    if mailbox.get("provider") != "moemail":
+        return
+    try:
+        if delete_mailbox(mailbox):
+            step(index, "MoEmail 临时邮箱删除完成")
+        else:
+            step(index, "MoEmail 临时邮箱未执行删除", "yellow")
+    except Exception as error:
+        step(index, f"MoEmail 临时邮箱删除失败: {error}", "yellow")
+
+
 class SentinelTokenGenerator:
     MAX_ATTEMPTS = 500000
     ERROR_PREFIX = "wQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D"
@@ -703,6 +719,7 @@ class PlatformRegistrar:
         if not code:
             raise RuntimeError("等待注册验证码超时")
         step(index, f"收到注册验证码: {code}")
+        delete_moemail_mailbox(mailbox, index)
         self._validate_otp(code, index)
         continue_url = self._create_account(f"{first_name} {last_name}", _random_birthdate(), index)
         tokens = self._finish_registration_and_exchange_tokens(code_verifier, continue_url, index)
