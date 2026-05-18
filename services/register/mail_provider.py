@@ -568,7 +568,7 @@ class MoEmailProvider(BaseMailProvider):
             self.domain = [str(item).strip() for item in raw_domains if str(item).strip()]
         else:
             self.domain = [str(raw_domains).strip()] if str(raw_domains).strip() else []
-        self.expiry_time = int(entry.get("expiry_time") or 300000)
+        self.expiry_time = int(entry.get("expiry_time") or 3600000)
         self.session = curl_requests.Session(impersonate="chrome")
 
     def _request(self, method: str, path: str, params: dict | None = None, payload: dict | None = None, expected: tuple[int, ...] = (200,)):
